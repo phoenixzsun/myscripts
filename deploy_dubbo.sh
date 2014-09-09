@@ -17,6 +17,12 @@
 #                          `--- alm-service-impl-4.0                                                                     #
 #                                                                                                                        #
 # Arguments:                                                                                                             #
+#       rollback)                                                                                                        #
+#          $1 -- "-rb"                                                                                                   #
+#          $2 -- BASEDUBBODIR                                                                                            #
+#          $3 -- TARDIRNAME                                                                                              #
+#          $4 -- APP_VERSION (like 2014090901)                                                                           #
+#       normal deployment)                                                                                               #
 #          $1 -- ftp host ip                                                                                             #
 #          $2 -- username of ftp server                                                                                  #
 #          $3 -- password of ftp server                                                                                  #
@@ -24,7 +30,6 @@
 #          $5 -- the name of the tar archieve                                                                            #
 #                                                                                                                        #
 ##########################################################################################################################
-
 func_ftp() ## $BASEDUBBODIR $IP $USERNAME $PASSWORD $TARNAME $APP_VERSION
 {
     appdir=$(basename $1)
@@ -193,24 +198,34 @@ func_deploy_dubbos() #$1=BASEDUBBODIR $2=APP_VERSION $3=TARNAME
     esac
 }
 
-# func_rollback() $1=tardirname $2=BASEDUBBODIR $3=TARNAME
-# {
-#     func_stop
-#     cd $3
-#     start
-#     exit
-# }
+func_rollback() # $1=BASEDUBBODIR $2=tardirname $3=APP_VERSION
+{
+  echo "-----func_rollback begin -----"
+    func_stop $1 $2
+    func_start $1 $3 $2
+    ifstarted=`echo $?`
+    if [ $ifstarted -eq 0 ]; then
+        echo $1"-rolling-back-ok"
+        echo ""
+        echo ""
+        return 0
+    else
+        echo $1"-rolling-back-failed-Exception"
+        echo ""
+        echo ""
+        return 1
+    fi
+  echo "-----func_rollback  end -----"
+}
 
 ############ 1) rollback ############
-# if [ $1 == "-rb" ]; then
-#     BASEDUBBODIR=$2
-#     TARNAME=$3
-#     TARDIRNAME=$(basename $BASEDUBBODIR)
-#     APP_NAME=${TARNAME%%.*}
-#     TAR_VERSION_NAME=${TARNAME%.*}
-#     APP_VERSION=${TAR_VERSION_NAME##*.}
-#     func_rollback $TARDIRNAME $BASEDUBBODIR $TARDIRNAME
-# fi
+if [ $1 == "-rb" ]; then
+    BASEDUBBODIR=$2
+    TARDIRNAME=$3
+    APP_VERSION=$4
+    func_rollback $BASEDUBBODIR $TARDIRNAME $APP_VERSION
+    exit
+fi
 
 ############ 2) normal deployment ############
 IP=$1

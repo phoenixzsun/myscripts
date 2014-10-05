@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 ##########################################################################
 # Prequist:                                                              #
 #        1. the archieve is put in the home directory of the specified   #

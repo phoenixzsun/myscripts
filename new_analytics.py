@@ -151,7 +151,7 @@ else:
         outputfileName = gadgetName+'.'+sys.argv[2]+'---'+sys.argv[3]+'.xlsx'
 
 #replace with the IP address of your Elasticsearch node
-es = elasticsearch.Elasticsearch(["10.135.16.171:9500"])
+es = elasticsearch.Elasticsearch(["ip:port"])
 
 res=__search(level, conditions, gadgetName, gte_time, lte_time, es, 5)
 #print res['hits']['total']

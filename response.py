@@ -15,20 +15,12 @@ import xlsxwriter
 
 if len(sys.argv) < 4:
     print 'Usage:'
-    print '    python new_analytics.py appName fromTime toTime level'
+    print '    python response.py appName fromTime toTime'
     print '  for example:'
-    print '    python new_analytics.py HaierApp 2014-11-01 2014-12-01 FATAL'
+    print '    python response.py HaierApp 2014-11-01 2014-12-01'
     exit()
 
 # Functions
-# 
-def isset(v):
-  try:
-     type (eval(v))
-  except:
-      return 0
-  else:
-      return 1
 
 def __coustruct_time(shortTime):
     longTime = shortTime + ' 00:00:00'
@@ -64,6 +56,23 @@ def __search(gadgetName, gte_time, lte_time, es, initsize):
         },
         "from": 0,
         "size": 10,
+        "aggs": {
+          "terms": {
+            "terms": {
+                "field": "worklight_data.daystamp",
+                "size": 0,
+                "order": {"_term":"asc"}
+            },
+            "aggs": { 
+                "avg_response": { 
+                   "avg": {
+                      "field": "responseTime" 
+                   }
+                }
+            }
+
+          }
+        },
         "sort": [],
         "facets": {}
     }, size=initsize)  #this is the number of rows to return from the query... to get all queries, run script, see total number of hits, then set euqual to number >= total hits
@@ -90,7 +99,7 @@ print("Got %d Hits:" % hitcount)
 # the second query for get all the results
 res=__search(gadgetName, gte_time, lte_time, es, hitcount)
 
-sample = res['hits']['hits']
+sample = res['aggregations']['terms']['buckets']
 
 # Create a workbook and add a worksheet.
 workbook = xlsxwriter.Workbook(outputfileName)
@@ -100,43 +109,35 @@ worksheet = workbook.add_worksheet()
 bold = workbook.add_format({'bold': True})
 
 # Widen columns to make the text clearer.
-worksheet.set_column('A:A', 15)
-worksheet.set_column('B:B', 12)
-worksheet.set_column('C:C', 12)
-worksheet.set_column('D:D', 12)
-worksheet.set_column('E:E', 20)
-worksheet.set_column('F:F', 15)
-worksheet.set_column('G:G', 30)
-worksheet.set_column('H:H', 40)
-# worksheet.set_column('I:I', 70)
+worksheet.set_column('A:A', 20)
+worksheet.set_column('B:B', 20)
 
 # Write some data header.
-worksheet.write('A1', 'gadgetVersion', bold)
-worksheet.write('B1', 'deviceModel', bold)
-worksheet.write('C1', 'deviceOs', bold)
-worksheet.write('D1', 'environment', bold)
-worksheet.write('E1', 'package', bold)
-worksheet.write('F1', 'responseTime', bold)
-worksheet.write('G1', 'procedure', bold)
-worksheet.write('H1', 'path', bold)
-# worksheet.write('I1', 'message', bold)
+worksheet.write('B1', 'avg_response', bold)
+worksheet.write('A1', 'daystamp', bold)
 
 # Write data
 row = 1
 col = 0
 for hit in sample:
-  if ('responseTime' in hit["_source"]["worklight_data"]):
-    worksheet.write(row, col, hit["_source"]["worklight_data"]["gadgetVersion"])
-    worksheet.write(row, col+1, hit["_source"]["worklight_data"]["deviceModel"])
-    worksheet.write(row, col+2, hit["_source"]["worklight_data"]["deviceOs"])
-    worksheet.write(row, col+3, hit["_source"]["worklight_data"]["environment"])
-    if ('package' in hit["_source"]["worklight_data"]):
-      worksheet.write(row, col+4, hit["_source"]["worklight_data"]["package"])
-    worksheet.write(row, col+5, hit["_source"]["worklight_data"]["responseTime"])
-    if ('path' in hit["_source"]["worklight_data"]):
-      worksheet.write(row, col+7, hit["_source"]["worklight_data"]["path"])
-    if ('procedure' in hit["_source"]["worklight_data"]):
-      worksheet.write(row, col+6, hit["_source"]["worklight_data"]["procedure"])
-    # worksheet.write(row, col+8, hit["_source"]["worklight_data"]["message"])
-    row += 1
+  # if ('responseTime' in hit["_source"]["worklight_data"]):
+  #   worksheet.write(row, col, hit["_source"]["worklight_data"]["gadgetVersion"])
+  #   worksheet.write(row, col+1, hit["_source"]["worklight_data"]["deviceModel"])
+  #   worksheet.write(row, col+2, hit["_source"]["worklight_data"]["deviceOs"])
+  #   worksheet.write(row, col+3, hit["_source"]["worklight_data"]["environment"])
+  #   if ('package' in hit["_source"]["worklight_data"]):
+  #     worksheet.write(row, col+4, hit["_source"]["worklight_data"]["package"])
+  #   worksheet.write(row, col+5, hit["_source"]["worklight_data"]["responseTime"])
+  #   if ('path' in hit["_source"]["worklight_data"]):
+  #     worksheet.write(row, col+7, hit["_source"]["worklight_data"]["path"])
+  #   if ('procedure' in hit["_source"]["worklight_data"]):
+  #     worksheet.write(row, col+6, hit["_source"]["worklight_data"]["procedure"])
+  #   worksheet.write(row, col+8, hit["_source"]["worklight_data"]["daystamp"])
+  tempTime = hit["key"] / 1000
+  toBeCon = time.localtime(tempTime)
+  converted = time.strftime('%Y-%m-%d',toBeCon)
+  print converted
+  worksheet.write(row, col, converted)
+  worksheet.write(row, col+1, hit["avg_response"]["value"])
+  row += 1
 workbook.close()
